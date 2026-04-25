@@ -7,3 +7,10 @@ La idea es sencilla pero ambiciosa: en vez de pagar suscripciones caras a herram
 ## Sobre mí
 
 Desarrollador en Bilbao . Me gusta construir cosas que combinen oficio técnico con utilidad real — desde plataformas SaaS hasta automatizaciones con IA — y este proyecto encaja en esa línea. Más cosas que hago en [aaronduque.es](https://aaronduque.es).
+
+## Curiosidades dev
+
+al crear el repository que extienda de JpaRepository automaticamente heredas save(), findAll(), findById(), delete(), count(), etc. muy util nos lo ahorramos de escribir
+
+@Repository
+public interface EmpresaRepositorio extends JpaRepository<Empresa, Long> 
