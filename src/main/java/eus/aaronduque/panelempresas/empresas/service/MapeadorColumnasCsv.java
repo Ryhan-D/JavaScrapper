@@ -25,8 +25,6 @@ public class MapeadorColumnasCsv {
 
     /**
      * Dado el header del CSV, devuelve un mapa: campo canónico -> nombre real en el CSV.
-     * Si una columna del CSV no se reconoce, se ignora.
-     * Si un campo canónico no aparece en el CSV, no estará en el mapa de retorno.
      */
     public static Map<String, String> mapear(List<String> headerCsv) {
         Map<String, String> resultado = new HashMap<>();
@@ -34,7 +32,6 @@ public class MapeadorColumnasCsv {
         for (String columnaCsv : headerCsv) {
             String normalizada = normalizar(columnaCsv);
 
-            // Buscar en que campo canonico encaja esta columna
             for (Map.Entry<String, Set<String>> entrada : SINONIMOS.entrySet()) {
                 if (entrada.getValue().contains(normalizada)) {
                     resultado.put(entrada.getKey(), columnaCsv);

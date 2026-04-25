@@ -1,20 +1,23 @@
 package eus.aaronduque.panelempresas.empresas.controller;
 
-import eus.aaronduque.panelempresas.empresas.dto.ImportacionResultadoDto;
-import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-
+import eus.aaronduque.panelempresas.empresas.dto.BusquedaEmpresasDto;
 import eus.aaronduque.panelempresas.empresas.dto.EmpresaCreateDto;
 import eus.aaronduque.panelempresas.empresas.dto.EmpresaResponseDto;
+import eus.aaronduque.panelempresas.empresas.dto.ImportacionResultadoDto;
 import eus.aaronduque.panelempresas.empresas.entity.Empresa;
+import eus.aaronduque.panelempresas.empresas.entity.EstadoEnriquecimiento;
+import eus.aaronduque.panelempresas.empresas.entity.TamanoEmpresa;
 import eus.aaronduque.panelempresas.empresas.service.EmpresaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/empresas")
@@ -47,16 +50,21 @@ public class EmpresaController {
 
     /**
      * GET /api/empresas
-     * Lista todas las empresas.
+     * Lista empresas con filtros opcionales y paginación.
+     * Sin parámetros equivale a "listar todas las empresas paginadas".
      */
     @GetMapping
-    public ResponseEntity<List<EmpresaResponseDto>> listar() {
-        List<EmpresaResponseDto> empresas = empresaService.listarTodas()
-                .stream()
-                .map(EmpresaResponseDto::desde)
-                .toList();
+    public ResponseEntity<BusquedaEmpresasDto> buscar(
+            @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String provincia,
+            @RequestParam(required = false) TamanoEmpresa tamano,
+            @RequestParam(required = false) EstadoEnriquecimiento estado,
+            @RequestParam(required = false) String sector,
+            @PageableDefault(size = 20, sort = "fechaCreacion") Pageable pageable) {
 
-        return ResponseEntity.ok(empresas);
+        BusquedaEmpresasDto resultado = empresaService.buscar(
+                nombre, provincia, tamano, estado, sector, pageable);
+        return ResponseEntity.ok(resultado);
     }
 
     /**
@@ -72,7 +80,8 @@ public class EmpresaController {
     }
 
     /**
-     * Importa un archivo CSV con empresas. El CSV debe tener cabeceras.
+     * POST /api/empresas/importar
+     * Importa un archivo CSV con empresas.
      */
     @PostMapping("/importar")
     public ResponseEntity<ImportacionResultadoDto> importarCsv(

@@ -6,6 +6,14 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
+import eus.aaronduque.panelempresas.empresas.dto.BusquedaEmpresasDto;
+import eus.aaronduque.panelempresas.empresas.dto.EmpresaResponseDto;
+import eus.aaronduque.panelempresas.empresas.entity.TamanoEmpresa;
+import eus.aaronduque.panelempresas.empresas.repository.EmpresaEspecificaciones;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,10 +42,17 @@ public class EmpresaService {
     /**
      * Crea una nueva empresa en la base de datos.
      */
+
+    public boolean esDuplicada(Empresa empresa) {
+
+        return empresa.getCif() != null
+                && empresaRepository.existsByCif(empresa.getCif());
+    }
+
     @Transactional
     public Empresa crear(Empresa empresa) {
         // si trae CIF, comprobar que no este duplicado
-        if (empresa.getCif() != null && empresaRepository.existsByCif(empresa.getCif())) {
+        if (esDuplicada(empresa)) {
             throw new IllegalArgumentException(
                     "Ya existe una empresa con el CIF " + empresa.getCif());
         }
@@ -50,14 +65,6 @@ public class EmpresaService {
     }
 
     /**
-     * Devuelve todas las empresas. Sin paginacion de momento
-     */
-    @Transactional(readOnly = true)
-    public List<Empresa> listarTodas() {
-        return empresaRepository.findAll();
-    }
-
-    /**
      * Busca una empresa por su id.
      */
     @Transactional(readOnly = true)
@@ -67,10 +74,6 @@ public class EmpresaService {
 
     /**
      * Importa empresas desde un InputStream con formato CSV.
-     * - Mapea columnas con sinónimos.
-     * - Valida cada fila individualmente.
-     * - Salta duplicados por CIF sin abortar.
-     * - Devuelve estadísticas de la importación.
      */
     @Transactional
     public ImportacionResultadoDto importarDesdeCsv(InputStream csvStream) throws IOException {
@@ -103,12 +106,12 @@ public class EmpresaService {
 
             for (CSVRecord registro : parser) {
                 totalFilas++;
-                int linea = (int) registro.getRecordNumber() + 1; // +1 porque la cabecera es la 1
+                int linea = (int) registro.getRecordNumber() + 1;
 
                 try {
                     Empresa empresa = construirEmpresaDesdeRegistro(registro, mapeo);
 
-                    // Validación mínima: nombre obligatorio
+                    // nombre obligatorio
                     if (empresa.getNombre() == null || empresa.getNombre().isBlank()) {
                         errores.add(ErrorFila.builder().linea(linea).mensaje("Nombre vacío").build());
                         saltadasError++;
@@ -116,8 +119,7 @@ public class EmpresaService {
                     }
 
                     // Comprobar duplicado por CIF
-                    if (empresa.getCif() != null && !empresa.getCif().isBlank()
-                            && empresaRepository.existsByCif(empresa.getCif())) {
+                    if (esDuplicada(empresa)) {
                         saltadasDuplicadas++;
                         continue;
                     }
@@ -146,8 +148,7 @@ public class EmpresaService {
     }
 
     /**
-     * Construye una Empresa a partir de un registro CSV usando el mapeo de
-     * columnas.
+     * Construye una Empresa a partir de un registro CSV usando el mapeo de columnas
      */
     private Empresa construirEmpresaDesdeRegistro(CSVRecord registro, Map<String, String> mapeo) {
         Empresa empresa = new Empresa();
@@ -162,9 +163,7 @@ public class EmpresaService {
     }
 
     /**
-     * Lee el valor de una columna del CSV de forma segura:
-     * - Si la columna no estaba mapeada (null), devuelve null.
-     * - Si está vacía, devuelve null (mejor para la BD que cadena vacía).
+     * Lee el valor de una columna del CSV de forma segura
      */
     private String valorSeguro(CSVRecord registro, String nombreColumna) {
         if (nombreColumna == null)
@@ -173,4 +172,40 @@ public class EmpresaService {
         return (valor == null || valor.isBlank()) ? null : valor.trim();
     }
 
+    /**
+     * Busca empresas con filtros opcionales y paginacion.
+     */
+    @Transactional(readOnly = true)
+    public BusquedaEmpresasDto buscar(
+            String nombre,
+            String provincia,
+            TamanoEmpresa tamano,
+            EstadoEnriquecimiento estado,
+            String sector,
+            Pageable pageable) {
+
+        // Combinamos las especificaciones que esten activas
+        Specification<Empresa> filtros = Specification
+                .allOf(
+                        EmpresaEspecificaciones.conNombreParecidoA(nombre),
+                        EmpresaEspecificaciones.conProvincia(provincia),
+                        EmpresaEspecificaciones.conTamano(tamano),
+                        EmpresaEspecificaciones.conEstado(estado),
+                        EmpresaEspecificaciones.conSector(sector));
+
+        Page<Empresa> pagina = empresaRepository.findAll(filtros, pageable);
+
+        List<EmpresaResponseDto> contenido = pagina.getContent()
+                .stream()
+                .map(EmpresaResponseDto::desde)
+                .toList();
+
+        return BusquedaEmpresasDto.builder()
+                .contenido(contenido)
+                .paginaActual(pagina.getNumber())
+                .tamanoPagina(pagina.getSize())
+                .totalElementos(pagina.getTotalElements())
+                .totalPaginas(pagina.getTotalPages())
+                .build();
+    }
 }
