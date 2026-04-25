@@ -80,6 +80,15 @@ public class EmpresaController {
     }
 
     /**
+     * DELETE /api/empresas/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> borrar(@PathVariable Long id) {
+        empresaService.borrar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * POST /api/empresas/importar
      * Importa un archivo CSV con empresas.
      */

@@ -1,5 +1,7 @@
 package eus.aaronduque.panelempresas.empresas.service;
 
+import eus.aaronduque.panelempresas.compartido.excepciones.RecursoNoEncontradoException;
+
 import eus.aaronduque.panelempresas.empresas.dto.ImportacionResultadoDto;
 import eus.aaronduque.panelempresas.empresas.dto.ImportacionResultadoDto.ErrorFila;
 import org.apache.commons.csv.CSVFormat;
@@ -70,6 +72,19 @@ public class EmpresaService {
     @Transactional(readOnly = true)
     public Optional<Empresa> buscarPorId(Long id) {
         return empresaRepository.findById(id);
+    }
+
+    /**
+     * Borra una empresa por su id.
+     */
+    @Transactional
+    public void borrar(Long id) {
+        if (!empresaRepository.existsById(id)) {
+            throw new RecursoNoEncontradoException(
+                    "No existe ninguna empresa con id " + id);
+        }
+        empresaRepository.deleteById(id);
+        log.info("Empresa con id {} eliminada", id);
     }
 
     /**
@@ -146,6 +161,7 @@ public class EmpresaService {
                 .errores(errores)
                 .build();
     }
+
 
     /**
      * Construye una Empresa a partir de un registro CSV usando el mapeo de columnas
