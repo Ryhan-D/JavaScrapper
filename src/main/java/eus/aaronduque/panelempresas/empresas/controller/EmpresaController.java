@@ -1,5 +1,9 @@
 package eus.aaronduque.panelempresas.empresas.controller;
 
+import eus.aaronduque.panelempresas.empresas.dto.ImportacionResultadoDto;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+
 import eus.aaronduque.panelempresas.empresas.dto.EmpresaCreateDto;
 import eus.aaronduque.panelempresas.empresas.dto.EmpresaResponseDto;
 import eus.aaronduque.panelempresas.empresas.entity.Empresa;
@@ -37,8 +41,8 @@ public class EmpresaController {
         Empresa creada = empresaService.crear(empresa);
 
         return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(EmpresaResponseDto.desde(creada));
+                .status(HttpStatus.CREATED)
+                .body(EmpresaResponseDto.desde(creada));
     }
 
     /**
@@ -48,9 +52,9 @@ public class EmpresaController {
     @GetMapping
     public ResponseEntity<List<EmpresaResponseDto>> listar() {
         List<EmpresaResponseDto> empresas = empresaService.listarTodas()
-            .stream()
-            .map(EmpresaResponseDto::desde)
-            .toList();
+                .stream()
+                .map(EmpresaResponseDto::desde)
+                .toList();
 
         return ResponseEntity.ok(empresas);
     }
@@ -62,8 +66,34 @@ public class EmpresaController {
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaResponseDto> obtenerPorId(@PathVariable Long id) {
         return empresaService.buscarPorId(id)
-            .map(EmpresaResponseDto::desde)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .map(EmpresaResponseDto::desde)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Importa un archivo CSV con empresas. El CSV debe tener cabeceras.
+     */
+    @PostMapping("/importar")
+    public ResponseEntity<ImportacionResultadoDto> importarCsv(
+            @RequestParam("archivo") MultipartFile archivo) throws IOException {
+
+        if (archivo.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        if (!esCsv(archivo)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        ImportacionResultadoDto resultado = empresaService.importarDesdeCsv(archivo.getInputStream());
+        return ResponseEntity.ok(resultado);
+    }
+
+    private boolean esCsv(MultipartFile archivo) {
+        String nombre = archivo.getOriginalFilename();
+        String contentType = archivo.getContentType();
+        return (nombre != null && nombre.toLowerCase().endsWith(".csv"))
+                || "text/csv".equalsIgnoreCase(contentType);
     }
 }
