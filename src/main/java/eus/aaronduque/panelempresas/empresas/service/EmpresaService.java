@@ -26,6 +26,8 @@ import java.util.Map;
 import eus.aaronduque.panelempresas.empresas.entity.Empresa;
 import eus.aaronduque.panelempresas.empresas.entity.EstadoEnriquecimiento;
 import eus.aaronduque.panelempresas.empresas.repository.EmpresaRepository;
+import eus.aaronduque.panelempresas.empresas.service.PersistenciaEmpresa;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ import java.util.Optional;
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final PersistenciaEmpresa persistenciaEmpresa;
 
     /**
      * Crea una nueva empresa en la base de datos.
@@ -90,7 +93,7 @@ public class EmpresaService {
     /**
      * Importa empresas desde un InputStream con formato CSV.
      */
-    @Transactional
+
     public ImportacionResultadoDto importarDesdeCsv(InputStream csvStream) throws IOException {
         int totalFilas = 0;
         int importadas = 0;
@@ -140,7 +143,7 @@ public class EmpresaService {
                     }
 
                     empresa.setEstadoEnriquecimiento(EstadoEnriquecimiento.pendiente);
-                    empresaRepository.save(empresa);
+                    persistenciaEmpresa.guardarAislada(empresa);
                     importadas++;
 
                 } catch (Exception e) {

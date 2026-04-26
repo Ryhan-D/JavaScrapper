@@ -31,3 +31,5 @@ public interface EmpresaRepositorio extends JpaRepository<Empresa, Long>
 @Modifying + @Query: aquí está el detalle nuevo. Por defecto, los métodos derivados de Spring Data como deleteByEmpresaId funcionarían, pero internamente harían N+1 queries: primero un SELECT para traer todos los contactos, luego un DELETE por cada uno. Si una empresa tiene 50 contactos, son 51 queries.
 
 Con @Query escribimos la query JPQL manualmente para que sea un único DELETE masivo. Y @Modifying le dice a Spring "esta query modifica datos, no es un SELECT" — sin esa anotación Spring se quejaría.
+
+@JsonIgnoreProperties(ignoreUnknown = true) nos sirve para que nuestro DTO recoja solo las propiedades json que nos interesa

@@ -36,11 +36,19 @@ server:
   error:
     include-stacktrace: never
     include-message: always
-    
+
 gemini:
   api-key: ${GEMINI_API_KEY}
   modelo: gemini-2.5-flash
   max-caracteres-entrada: 30000
+
+brave:
+  api-key: ${BRAVE_API_KEY}
+  url-base: https://api.search.brave.com/res/v1/web/search
+  timeout-segundos: 10
+  resultados-por-busqueda: 10
+  pais: ES
+  idioma: es
 
 logging:
   level:
