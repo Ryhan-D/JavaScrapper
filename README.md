@@ -33,3 +33,5 @@ public interface EmpresaRepositorio extends JpaRepository<Empresa, Long>
 Con @Query escribimos la query JPQL manualmente para que sea un único DELETE masivo. Y @Modifying le dice a Spring "esta query modifica datos, no es un SELECT" — sin esa anotación Spring se quejaría.
 
 @JsonIgnoreProperties(ignoreUnknown = true) nos sirve para que nuestro DTO recoja solo las propiedades json que nos interesa
+
+REQUIRES_NEW evita que un fallo de fila contamine el commit del lote; y Accept-Encoding: gzip rompe el parseo si el cliente HTTP no descomprime
