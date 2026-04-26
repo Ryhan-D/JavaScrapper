@@ -15,8 +15,9 @@ Desarrollador en Bilbao . Me gusta construir cosas que combinen oficio técnico 
 - [x] Endpoints REST CRUD para empresas
 - [x] Importación CSV con mapeo flexible de columnas
 - [x] Filtros, paginación y manejo profesional de errores
-- [ ] Scraping web con Playwright
-- [ ] Extracción de contactos con Gemini
+- [x] Scraping web con JSoup + descubrimiento multi-página
+- [x] Extracción de contactos con Gemini 2.5 Flash
+- [ ] Integración del enriquecimiento con la BD
 - [ ] Categorización automática por tamaño
 - [ ] Frontend Next.js
 
@@ -26,3 +27,7 @@ al crear el repository que extienda de JpaRepository automaticamente heredas sav
 
 @Repository
 public interface EmpresaRepositorio extends JpaRepository<Empresa, Long> 
+
+@Modifying + @Query: aquí está el detalle nuevo. Por defecto, los métodos derivados de Spring Data como deleteByEmpresaId funcionarían, pero internamente harían N+1 queries: primero un SELECT para traer todos los contactos, luego un DELETE por cada uno. Si una empresa tiene 50 contactos, son 51 queries.
+
+Con @Query escribimos la query JPQL manualmente para que sea un único DELETE masivo. Y @Modifying le dice a Spring "esta query modifica datos, no es un SELECT" — sin esa anotación Spring se quejaría.
