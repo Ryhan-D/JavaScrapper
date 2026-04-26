@@ -36,6 +36,11 @@ server:
   error:
     include-stacktrace: never
     include-message: always
+    
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  modelo: gemini-2.5-flash
+  max-caracteres-entrada: 30000
 
 logging:
   level:
