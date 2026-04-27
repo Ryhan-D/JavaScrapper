@@ -52,11 +52,12 @@ public class ExtractorGemini implements ExtractorLLM {
         try {
             log.debug("Llamando a Gemini con {} caracteres de entrada", textoTruncado.length());
             GenerateContentResponse respuesta = cliente.models.generateContent(
-                modelo, prompt, null);
+                    modelo, prompt, null);
 
             String textoRespuesta = respuesta.text();
-            log.debug("Respuesta de Gemini: {} caracteres", 
-                textoRespuesta != null ? textoRespuesta.length() : 0);
+            log.debug("Respuesta de Gemini: {} caracteres",
+                    textoRespuesta != null ? textoRespuesta.length() : 0);
+            log.debug("Respuesta cruda de Gemini:\n{}", textoRespuesta);
 
             return parsearRespuesta(textoRespuesta);
 
@@ -70,8 +71,9 @@ public class ExtractorGemini implements ExtractorLLM {
      * Trunca el texto si excede el límite, intentando cortar en un salto de línea.
      */
     private String truncar(String texto) {
-        if (texto.length() <= maxCaracteresEntrada) return texto;
-        
+        if (texto.length() <= maxCaracteresEntrada)
+            return texto;
+
         String truncado = texto.substring(0, maxCaracteresEntrada);
         int ultimoSalto = truncado.lastIndexOf("\n");
         if (ultimoSalto > maxCaracteresEntrada / 2) {
@@ -82,39 +84,41 @@ public class ExtractorGemini implements ExtractorLLM {
     }
 
     /**
-     * Construye el prompt con instrucciones precisas para extraer JSON estructurado.
+     * Construye el prompt con instrucciones precisas para extraer JSON
+     * estructurado.
      */
     private String construirPrompt(String texto) {
         return """
-            Eres un extractor de datos de contacto de webs corporativas españolas.
-            Analiza el siguiente contenido y devuelve EXCLUSIVAMENTE un JSON válido con esta estructura,
-            sin markdown, sin explicaciones, sin backticks:
+                Eres un extractor de datos de contacto de webs corporativas españolas.
+                Analiza el siguiente contenido y devuelve EXCLUSIVAMENTE un JSON válido con esta estructura,
+                sin markdown, sin explicaciones, sin backticks:
 
-            {
-              "emails_genericos": [],
-              "telefonos": [],
-              "personas": [
-                { "nombre": "string", "cargo": "string", "email": "string|null", "telefono": "string|null" }
-              ],
-              "redes_sociales": { "linkedin": "string|null", "twitter": "string|null", "facebook": "string|null" },
-              "descripcion_breve": "string"
-            }
+                {
+                  "emails_genericos": [],
+                  "telefonos": [],
+                  "personas": [
+                    { "nombre": "string", "cargo": "string", "email": "string|null", "telefono": "string|null" }
+                  ],
+                  "redes_sociales": { "linkedin": "string|null", "twitter": "string|null", "facebook": "string|null" },
+                  "descripcion_breve": "string"
+                }
 
-            REGLAS ESTRICTAS:
-            - emails_genericos: SOLO emails tipo info@, contacto@, ventas@, comunicacion@... NO incluyas emails de personas físicas aquí.
-            - personas: SOLO incluir personas con nombre Y cargo explícitos. NO inventes ni infieras. Si no hay personas claras, devuelve lista vacía.
-            - telefonos: formato español con prefijo +34 si es posible. Solo números reales que aparezcan en el texto, no plantillas tipo "+34 XXX XXX".
-            - redes_sociales: solo URLs completas que aparezcan en el texto. Si no aparecen, null.
-            - descripcion_breve: máximo 200 caracteres, qué hace la empresa según el texto.
-            - Si un campo no aparece, devuelve [] o null. NO ALUCINES DATOS.
+                REGLAS ESTRICTAS:
+                - emails_genericos: SOLO emails tipo info@, contacto@, ventas@, comunicacion@... NO incluyas emails de personas físicas aquí.
+                - personas: SOLO incluir personas con nombre Y cargo explícitos. NO inventes ni infieras. Si no hay personas claras, devuelve lista vacía.
+                - telefonos: formato español con prefijo +34 si es posible. Solo números reales que aparezcan en el texto, no plantillas tipo "+34 XXX XXX".
+                - redes_sociales: solo URLs completas que aparezcan en el texto. Si no aparecen, null.
+                - descripcion_breve: máximo 200 caracteres, qué hace la empresa según el texto.
+                - Si un campo no aparece, devuelve [] o null. NO ALUCINES DATOS.
 
-            Contenido a analizar:
-            %s
-            """.formatted(texto);
+                Contenido a analizar:
+                %s
+                """
+                .formatted(texto);
     }
 
     /**
-     * Parsea la respuesta de Gemini  a DatosExtraidos.
+     * Parsea la respuesta de Gemini a DatosExtraidos.
      */
     private DatosExtraidos parsearRespuesta(String texto) {
         if (texto == null || texto.isBlank()) {
@@ -123,21 +127,21 @@ public class ExtractorGemini implements ExtractorLLM {
 
         // Limpiar posibles bloques de markdown
         String json = texto.trim()
-            .replaceAll("(?s)^```json\\s*", "")
-            .replaceAll("(?s)^```\\s*", "")
-            .replaceAll("(?s)\\s*```$", "")
-            .trim();
+                .replaceAll("(?s)^```json\\s*", "")
+                .replaceAll("(?s)^```\\s*", "")
+                .replaceAll("(?s)\\s*```$", "")
+                .trim();
 
         try {
             JsonNode raiz = jsonMapper.readTree(json);
 
             return DatosExtraidos.builder()
-                .emailsGenericos(extraerListaStrings(raiz.path("emails_genericos")))
-                .telefonos(extraerListaStrings(raiz.path("telefonos")))
-                .personas(extraerPersonas(raiz.path("personas")))
-                .redesSociales(extraerRedesSociales(raiz.path("redes_sociales")))
-                .descripcionBreve(textoOpNull(raiz.path("descripcion_breve")))
-                .build();
+                    .emailsGenericos(extraerListaStrings(raiz.path("emails_genericos")))
+                    .telefonos(extraerListaStrings(raiz.path("telefonos")))
+                    .personas(extraerPersonas(raiz.path("personas")))
+                    .redesSociales(extraerRedesSociales(raiz.path("redes_sociales")))
+                    .descripcionBreve(textoOpNull(raiz.path("descripcion_breve")))
+                    .build();
 
         } catch (JsonProcessingException e) {
             log.warn("No se pudo parsear la respuesta de Gemini como JSON. Respuesta: {}", json);
@@ -159,18 +163,19 @@ public class ExtractorGemini implements ExtractorLLM {
 
     private List<PersonaContacto> extraerPersonas(JsonNode nodo) {
         List<PersonaContacto> resultado = new ArrayList<>();
-        if (!nodo.isArray()) return resultado;
+        if (!nodo.isArray())
+            return resultado;
 
         nodo.forEach(persona -> {
             String nombre = textoOpNull(persona.path("nombre"));
             String cargo = textoOpNull(persona.path("cargo"));
             if (nombre != null && cargo != null) {
                 resultado.add(PersonaContacto.builder()
-                    .nombre(nombre)
-                    .cargo(cargo)
-                    .email(textoOpNull(persona.path("email")))
-                    .telefono(textoOpNull(persona.path("telefono")))
-                    .build());
+                        .nombre(nombre)
+                        .cargo(cargo)
+                        .email(textoOpNull(persona.path("email")))
+                        .telefono(textoOpNull(persona.path("telefono")))
+                        .build());
             }
         });
         return resultado;
@@ -178,7 +183,8 @@ public class ExtractorGemini implements ExtractorLLM {
 
     private Map<String, String> extraerRedesSociales(JsonNode nodo) {
         Map<String, String> resultado = new HashMap<>();
-        if (!nodo.isObject()) return resultado;
+        if (!nodo.isObject())
+            return resultado;
 
         Iterator<Map.Entry<String, JsonNode>> campos = nodo.fields();
         while (campos.hasNext()) {
@@ -192,8 +198,10 @@ public class ExtractorGemini implements ExtractorLLM {
     }
 
     private String textoOpNull(JsonNode nodo) {
-        if (nodo.isNull() || nodo.isMissingNode()) return null;
-        if (!nodo.isTextual()) return null;
+        if (nodo.isNull() || nodo.isMissingNode())
+            return null;
+        if (!nodo.isTextual())
+            return null;
         String valor = nodo.asText().trim();
         return valor.isBlank() ? null : valor;
     }

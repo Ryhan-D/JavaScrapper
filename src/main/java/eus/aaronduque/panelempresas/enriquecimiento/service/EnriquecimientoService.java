@@ -37,7 +37,7 @@ public class EnriquecimientoService {
     private final PersistenciaEnriquecimiento persistencia;
 
     // Configuración
-    private static final int MAX_PAGINAS_POR_EMPRESA = 4;
+    private static final int MAX_PAGINAS_POR_EMPRESA = 5;
 
     /**
      * Enriquece una empresa: scraping + extracción LLM + guardado en BD.
